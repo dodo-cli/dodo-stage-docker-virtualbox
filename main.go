@@ -1,9 +1,9 @@
 package main
 
 import (
+	"github.com/dodo/dodo-stage-virtualbox/pkg/stage"
 	"github.com/hashicorp/go-plugin"
 	"github.com/oclaussen/dodo/pkg/stages/grpc"
-	"github.com/oclaussen/dodo/pkg/stages/virtualbox"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -13,7 +13,7 @@ func main() {
 		GRPCServer:      plugin.DefaultGRPCServer,
 		HandshakeConfig: grpc.HandshakeConfig("virtualbox"),
 		Plugins: map[string]plugin.Plugin{
-			"stage": &grpc.Plugin{Impl: &virtualbox.Stage{}},
+			"stage": &grpc.Plugin{Impl: &stage.Stage{}},
 		},
 	})
 }

@@ -1,4 +1,4 @@
-package virtualbox
+package stage
 
 import (
 	"crypto/tls"
@@ -12,11 +12,11 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/dodo/dodo-stage-virtualbox/pkg/virtualbox"
 	"github.com/mitchellh/mapstructure"
 	"github.com/oclaussen/dodo/pkg/box"
 	"github.com/oclaussen/dodo/pkg/config"
 	"github.com/oclaussen/dodo/pkg/integrations/ova"
-	"github.com/oclaussen/dodo/pkg/integrations/virtualbox"
 	"github.com/oclaussen/dodo/pkg/stage"
 	"github.com/oclaussen/dodo/pkg/stagedesigner"
 	"github.com/oclaussen/dodo/pkg/types"

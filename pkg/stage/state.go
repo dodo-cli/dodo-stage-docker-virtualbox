@@ -1,4 +1,4 @@
-package virtualbox
+package stage
 
 import (
 	"encoding/json"

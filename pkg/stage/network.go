@@ -1,4 +1,4 @@
-package virtualbox
+package stage
 
 import (
 	"math/rand"
@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/oclaussen/dodo/pkg/integrations/virtualbox"
+	"github.com/dodo/dodo-stage-virtualbox/pkg/virtualbox"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 )
