@@ -6,16 +6,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dodo/dodo-stage-virtualbox/pkg/virtualbox"
+	"github.com/dodo-cli/dodo-stage-virtualbox/pkg/virtualbox"
+	log "github.com/hashicorp/go-hclog"
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 )
 
 const (
 	dhcpPrefix = "HostInterfaceNetworking-"
 )
 
-func (vbox *Stage) SetupHostOnlyNetwork(cidr string) error {
+func (vbox *Stage) SetupHostOnlyNetwork(name string, cidr string) error {
 	ip, network, err := net.ParseCIDR(cidr)
 	if err != nil {
 		return err
@@ -56,7 +56,7 @@ func (vbox *Stage) SetupHostOnlyNetwork(cidr string) error {
 		return err
 	}
 
-	if err := hostOnlyNetwork.ConnectVM(vbox.VM); err != nil {
+	if err := hostOnlyNetwork.ConnectVM(&virtualbox.VM{Name: name}); err != nil {
 		return err
 	}
 
@@ -183,10 +183,7 @@ func CleanupDHCPServers() error {
 		if strings.HasPrefix(server.NetworkName, dhcpPrefix) {
 			if _, present := currentNetworks[server.NetworkName]; !present {
 				if err := server.Remove(); err != nil {
-					log.WithFields(log.Fields{
-						"server": server.NetworkName,
-						"error":  err,
-					}).Warn("could not remove dhcp server")
+					log.L().Warn("could not remove dhcp server", "server", server.NetworkName, "error", err)
 				}
 			}
 		}

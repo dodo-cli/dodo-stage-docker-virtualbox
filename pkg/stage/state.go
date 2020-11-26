@@ -7,9 +7,7 @@ import (
 	"path/filepath"
 )
 
-const (
-	stateFilename = "state.json"
-)
+const stateFilename = "state.json"
 
 type State struct {
 	IPAddress      string
@@ -17,40 +15,34 @@ type State struct {
 	PrivateKeyFile string
 }
 
-func (vbox *Stage) loadState() error {
-	filename := filepath.Join(vbox.StoragePath, stateFilename)
+func  loadState(name string) (*State, error) {
+	filename := filepath.Join(storagePath(name), stateFilename)
 
 	if _, err := os.Stat(filename); err != nil {
 		if os.IsNotExist(err) {
-			vbox.State = &State{}
-			return nil
+			return &State{}, nil
 		} else {
-			return err
+			return nil, err
 		}
 	}
 
 	stateFile, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var state State
 	if err := json.Unmarshal(stateFile, &state); err != nil {
-		return err
+		return nil, err
 	}
-	vbox.State = &state
 
-	return nil
+	return &state, nil
 }
 
-func (vbox *Stage) saveState() error {
-	filename := filepath.Join(vbox.StoragePath, stateFilename)
+func saveState(name string, state *State) error {
+	filename := filepath.Join(storagePath(name), stateFilename)
 
-	if vbox.State == nil {
-		return nil
-	}
-
-	stateFile, err := json.Marshal(vbox.State)
+	stateFile, err := json.Marshal(state)
 	if err != nil {
 		return err
 	}

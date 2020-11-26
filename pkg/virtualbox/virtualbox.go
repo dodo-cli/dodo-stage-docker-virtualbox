@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
+	log "github.com/hashicorp/go-hclog"
 )
 
 type VM struct {
@@ -61,7 +61,7 @@ func vbmRetry(retry int, args ...string) (string, error) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	log.WithFields(log.Fields{"executable": vboxManage, "arguments": args}).Debug("running VBoManage")
+	log.L().Debug("running VBoManage", "executable", vboxManage, "arguments", args)
 	if err := cmd.Run(); err != nil {
 		return "", errors.New(stderr.String())
 	}

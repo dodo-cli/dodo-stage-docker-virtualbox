@@ -26,14 +26,14 @@ func await(test func() (bool, error)) error {
 	return errors.New("max retries reached")
 }
 
-func (vbox *Stage) isSSHAvailable() (bool, error) {
-	sshOpts, err := vbox.GetSSHOptions()
+func (vbox *Stage) isSSHAvailable(name string) (bool, error) {
+	sshOpts, err := vbox.GetSSHOptions(name)
 	if err != nil {
 		return false, err
 	}
 	executor, err := ssh.GimmeExecutor(&ssh.Options{
 		Host:              sshOpts.Hostname,
-		Port:              sshOpts.Port,
+		Port:              int(sshOpts.Port),
 		User:              sshOpts.Username,
 		IdentityFileGlobs: []string{sshOpts.PrivateKeyFile},
 		NonInteractive:    true,
