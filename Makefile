@@ -2,7 +2,7 @@ all: clean test build
 
 .PHONY: clean
 clean:
-	rm -f dodo-stage-virtualbox_*
+	rm -f dodo-stage-docker-virtualbox_*
 
 .PHONY: fmt
 fmt:

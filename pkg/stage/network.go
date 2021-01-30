@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dodo-cli/dodo-stage-virtualbox/pkg/virtualbox"
+	"github.com/dodo-cli/dodo-stage-docker-virtualbox/pkg/virtualbox"
 	log "github.com/hashicorp/go-hclog"
 	"github.com/pkg/errors"
 )

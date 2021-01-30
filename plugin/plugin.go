@@ -2,7 +2,7 @@ package plugin
 
 import (
 	"github.com/dodo-cli/dodo-core/pkg/plugin"
-	"github.com/dodo-cli/dodo-stage-virtualbox/pkg/stage"
+	"github.com/dodo-cli/dodo-stage-docker-virtualbox/pkg/stage"
 )
 
 func RunMe() int {

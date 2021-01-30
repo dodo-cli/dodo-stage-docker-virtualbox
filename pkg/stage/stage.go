@@ -12,20 +12,26 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/docker/docker/client"
+	coreapi "github.com/dodo-cli/dodo-core/api/v1alpha1"
 	"github.com/dodo-cli/dodo-core/pkg/appconfig"
 	"github.com/dodo-cli/dodo-core/pkg/plugin"
-	"github.com/dodo-cli/dodo-stage-virtualbox/pkg/virtualbox"
+	"github.com/dodo-cli/dodo-core/pkg/plugin/runtime"
+	dockerruntime "github.com/dodo-cli/dodo-docker/pkg/runtime"
+	"github.com/dodo-cli/dodo-stage-docker-virtualbox/pkg/virtualbox"
+	api "github.com/dodo-cli/dodo-stage/api/v1alpha1"
 	"github.com/dodo-cli/dodo-stage/pkg/box"
 	"github.com/dodo-cli/dodo-stage/pkg/integrations/ova"
 	"github.com/dodo-cli/dodo-stage/pkg/stage"
 	"github.com/dodo-cli/dodo-stage/pkg/stagedesigner"
-	"github.com/dodo-cli/dodo-stage/pkg/types"
 	log "github.com/hashicorp/go-hclog"
 	"github.com/oclaussen/go-gimme/ssh"
 	"github.com/pkg/errors"
 )
 
 const defaultPort = 2376
+
+var _ stage.Stage = &Stage{}
 
 type Stage struct{}
 
@@ -42,11 +48,19 @@ func (vbox *Stage) Init() error {
 	return nil
 }
 
-func (vbox *Stage) StageType() (string, error) {
-	return "virtualbox", nil
+func (vbox *Stage) PluginInfo() (*coreapi.PluginInfo, error) {
+	return &coreapi.PluginInfo{Name: "virtualbox"}, nil
 }
 
-func (vbox *Stage) Create(conf *types.Stage) error {
+func (vbox *Stage) ListStages() ([]*api.Stage, error) {
+	return []*api.Stage{}, nil // TODO: implement list
+}
+
+func (vbox *Stage) GetStage(name string) (*api.GetStageResponse, error) {
+	return nil, nil // TODO: implement get
+}
+
+func (vbox *Stage) CreateStage(conf *api.Stage) error {
 	// TODO: read options from config
 	options := &Options{}
 	vm := &virtualbox.VM{Name: conf.Name}
@@ -173,10 +187,10 @@ func (vbox *Stage) Create(conf *types.Stage) error {
 		}
 	}
 
-	return vbox.Start(conf.Name)
+	return vbox.StartStage(conf.Name)
 }
 
-func (vbox *Stage) Start(name string) error {
+func (vbox *Stage) StartStage(name string) error {
 	// TODO: read options from config
 	options := &Options{}
 	vm := &virtualbox.VM{Name: name}
@@ -269,13 +283,13 @@ func (vbox *Stage) Start(name string) error {
 		return err
 	}
 
-	dockerURL, err := vbox.GetURL(name)
+	boxUrl, err := vbox.GetURL(name)
 	if err != nil {
 		return err
 	}
-	parsed, err := url.Parse(dockerURL)
+	parsed, err := url.Parse(boxUrl)
 	if err != nil {
-		return errors.Wrap(err, "could not parse Docker URL")
+		return errors.Wrap(err, "could not parse URL")
 	}
 
 	if _, err = tls.DialWithDialer(
@@ -295,7 +309,7 @@ func (vbox *Stage) Start(name string) error {
 	return nil
 }
 
-func (vbox *Stage) Stop(name string) error {
+func (vbox *Stage) StopStage(name string) error {
 	vm := &virtualbox.VM{Name: name}
 	log.L().Info("stopping VM...")
 
@@ -322,7 +336,7 @@ func (vbox *Stage) Stop(name string) error {
 	return errors.New("VM did not stop successfully")
 }
 
-func (vbox *Stage) Remove(name string, force bool, volumes bool) error {
+func (vbox *Stage) DeleteStage(name string, force bool, volumes bool) error {
 	vm := &virtualbox.VM{Name: name}
 
 	exist, err := vbox.Exist(name)
@@ -412,7 +426,7 @@ func (vbox *Stage) GetURL(name string) (string, error) {
 	return fmt.Sprintf("tcp://%s:%d", state.IPAddress, defaultPort), nil
 }
 
-func (vbox *Stage) GetSSHOptions(name string) (*types.SSHOptions, error) {
+func (vbox *Stage) GetSSHOptions(name string) (*api.SSHOptions, error) {
 	vm := &virtualbox.VM{Name: name}
 
 	portForwardings, err := vm.ListPortForwardings()
@@ -436,7 +450,7 @@ func (vbox *Stage) GetSSHOptions(name string) (*types.SSHOptions, error) {
 		return nil, err
 	}
 
-	return &types.SSHOptions{
+	return &api.SSHOptions{
 		Hostname:       "127.0.0.1",
 		Port:           int32(port),
 		Username:       state.Username,
@@ -444,17 +458,26 @@ func (vbox *Stage) GetSSHOptions(name string) (*types.SSHOptions, error) {
 	}, nil
 }
 
-func (vbox *Stage) GetDockerOptions(name string) (*types.DockerOptions, error) {
+func (vbox *Stage) GetContainerRuntime(name string) (runtime.ContainerRuntime, error) {
 	url, err := vbox.GetURL(name)
 	if err != nil {
 		return nil, err
 	}
-	return &types.DockerOptions{
-		Host:     url,
-		CaFile:   filepath.Join(storagePath(name), "ca.pem"),
-		CertFile: filepath.Join(storagePath(name), "client.pem"),
-		KeyFile:  filepath.Join(storagePath(name), "client-key.pem"),
-	}, nil
+
+	c, err := client.NewClientWithOpts(
+		client.WithVersion("1.39"),
+		client.WithHost(url),
+		client.WithTLSClientConfig(
+			filepath.Join(storagePath(name), "ca.pem"),
+			filepath.Join(storagePath(name), "cert.pem"),
+			filepath.Join(storagePath(name), "client-key.pem"),
+		),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return dockerruntime.New(c), nil
 }
 
 func storagePath(name string) string {
