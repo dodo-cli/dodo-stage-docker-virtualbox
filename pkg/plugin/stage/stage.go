@@ -13,23 +13,28 @@ import (
 	"time"
 
 	"github.com/docker/docker/client"
-	coreapi "github.com/dodo-cli/dodo-core/api/v1alpha1"
-	"github.com/dodo-cli/dodo-core/pkg/appconfig"
+	buildkitbuilder "github.com/dodo-cli/dodo-buildkit/pkg/plugin/builder"
+	coreapi "github.com/dodo-cli/dodo-core/api/v1alpha2"
+	"github.com/dodo-cli/dodo-core/pkg/config"
 	"github.com/dodo-cli/dodo-core/pkg/plugin"
+	"github.com/dodo-cli/dodo-core/pkg/plugin/builder"
 	"github.com/dodo-cli/dodo-core/pkg/plugin/runtime"
-	dockerruntime "github.com/dodo-cli/dodo-docker/pkg/runtime"
+	dockerruntime "github.com/dodo-cli/dodo-docker/pkg/plugin/runtime"
 	"github.com/dodo-cli/dodo-stage-docker-virtualbox/pkg/virtualbox"
 	api "github.com/dodo-cli/dodo-stage/api/v1alpha1"
 	"github.com/dodo-cli/dodo-stage/pkg/box"
 	"github.com/dodo-cli/dodo-stage/pkg/integrations/ova"
-	"github.com/dodo-cli/dodo-stage/pkg/stage"
+	"github.com/dodo-cli/dodo-stage/pkg/plugin/stage"
 	"github.com/dodo-cli/dodo-stage/pkg/stagedesigner"
 	log "github.com/hashicorp/go-hclog"
 	"github.com/oclaussen/go-gimme/ssh"
 	"github.com/pkg/errors"
 )
 
-const defaultPort = 2376
+const (
+	name        = "virtualbox"
+	defaultPort = 2376
+)
 
 var _ stage.Stage = &Stage{}
 
@@ -40,24 +45,47 @@ type Options struct {
 	Provision []string
 }
 
+func New() *Stage {
+	return &Stage{}
+}
+
 func (vbox *Stage) Type() plugin.Type {
 	return stage.Type
 }
 
-func (vbox *Stage) Init() error {
-	return nil
+func (vbox *Stage) PluginInfo() *coreapi.PluginInfo {
+	return &coreapi.PluginInfo{
+		Name: &coreapi.PluginName{Name: "virtualbox", Type: stage.Type.String()},
+	}
 }
 
-func (vbox *Stage) PluginInfo() (*coreapi.PluginInfo, error) {
-	return &coreapi.PluginInfo{Name: "virtualbox"}, nil
-}
-
-func (vbox *Stage) ListStages() ([]*api.Stage, error) {
-	return []*api.Stage{}, nil // TODO: implement list
+func (vbox *Stage) Init() (plugin.PluginConfig, error) {
+	// TODO: seriously, init this thing
+	return map[string]string{}, nil
 }
 
 func (vbox *Stage) GetStage(name string) (*api.GetStageResponse, error) {
-	return nil, nil // TODO: implement get
+	exist, err := vbox.Exist(name)
+	if err != nil {
+		return nil, err
+	}
+
+	available, err := vbox.Available(name)
+	if err != nil {
+		return nil, err
+	}
+
+	sshOpts, err := vbox.GetSSHOptions(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.GetStageResponse{
+		Name:       name,
+		Exist:      exist,
+		Available:  available,
+		SshOptions: sshOpts,
+	}, nil
 }
 
 func (vbox *Stage) CreateStage(conf *api.Stage) error {
@@ -469,7 +497,7 @@ func (vbox *Stage) GetContainerRuntime(name string) (runtime.ContainerRuntime, e
 		client.WithHost(url),
 		client.WithTLSClientConfig(
 			filepath.Join(storagePath(name), "ca.pem"),
-			filepath.Join(storagePath(name), "cert.pem"),
+			filepath.Join(storagePath(name), "client.pem"),
 			filepath.Join(storagePath(name), "client-key.pem"),
 		),
 	)
@@ -477,13 +505,35 @@ func (vbox *Stage) GetContainerRuntime(name string) (runtime.ContainerRuntime, e
 		return nil, err
 	}
 
-	return dockerruntime.New(c), nil
+	return dockerruntime.NewFromClient(c), nil
+}
+
+func (vbox *Stage) GetImageBuilder(name string) (builder.ImageBuilder, error) {
+	url, err := vbox.GetURL(name)
+	if err != nil {
+		return nil, err
+	}
+
+	c, err := client.NewClientWithOpts(
+		client.WithVersion("1.39"),
+		client.WithHost(url),
+		client.WithTLSClientConfig(
+			filepath.Join(storagePath(name), "ca.pem"),
+			filepath.Join(storagePath(name), "client.pem"),
+			filepath.Join(storagePath(name), "client-key.pem"),
+		),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return buildkitbuilder.NewFromClient(c), nil
 }
 
 func storagePath(name string) string {
-	return filepath.Join(appconfig.GetAppDir(), "stages", name)
+	return filepath.Join(config.GetAppDir(), "stages", name)
 }
 
 func persistPath(name string) string {
-	return filepath.Join(appconfig.GetAppDir(), "persist", name)
+	return filepath.Join(config.GetAppDir(), "persist", name)
 }
