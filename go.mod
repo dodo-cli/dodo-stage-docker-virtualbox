@@ -10,8 +10,8 @@ replace (
 require (
 	github.com/docker/docker v20.10.2+incompatible
 	github.com/dodo-cli/dodo-buildkit v0.2.1
-	github.com/dodo-cli/dodo-core v0.3.1
-	github.com/dodo-cli/dodo-docker v0.2.2
+	github.com/dodo-cli/dodo-core v0.4.0
+	github.com/dodo-cli/dodo-docker v0.2.3
 	github.com/dodo-cli/dodo-stage v0.1.0
 	github.com/hashicorp/go-hclog v0.15.0
 	github.com/oclaussen/go-gimme/ssh v0.0.0-20200205175519-d9560e60c720
