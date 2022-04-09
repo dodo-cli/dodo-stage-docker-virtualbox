@@ -15,10 +15,9 @@ require (
 	github.com/dodo-cli/dodo-config v0.3.0
 	github.com/dodo-cli/dodo-core v0.4.2
 	github.com/dodo-cli/dodo-docker v0.3.0
-	github.com/dodo-cli/dodo-stage v0.1.0
+	github.com/dodo-cli/dodo-stage v0.1.1-0.20220409162421-7c71c40455ed
 	github.com/hashicorp/go-hclog v0.15.0
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/oclaussen/go-gimme/configfiles v0.0.0-20200205175519-d9560e60c720
 	github.com/oclaussen/go-gimme/ssh v0.0.0-20200205175519-d9560e60c720
 	github.com/pkg/errors v0.9.1
 )
@@ -81,6 +80,7 @@ require (
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mpvl/unique v0.0.0-20150818121801-cbe035fff7de // indirect
 	github.com/nwaples/rardecode v1.1.0 // indirect
+	github.com/oclaussen/go-gimme/configfiles v0.0.0-20200205175519-d9560e60c720 // indirect
 	github.com/oclaussen/go-gimme/ssl v0.0.0-20200205175519-d9560e60c720 // indirect
 	github.com/oklog/run v1.0.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect

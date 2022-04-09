@@ -13,13 +13,14 @@ import (
 	"time"
 
 	"github.com/docker/docker/client"
-	buildkitbuilder "github.com/dodo-cli/dodo-buildkit/pkg/plugin/builder"
+	buildkitbuilder "github.com/dodo-cli/dodo-buildkit/pkg/plugin"
 	coreapi "github.com/dodo-cli/dodo-core/api/v1alpha2"
-	"github.com/dodo-cli/dodo-core/pkg/config"
+	coreconfig "github.com/dodo-cli/dodo-core/pkg/config"
 	"github.com/dodo-cli/dodo-core/pkg/plugin"
 	"github.com/dodo-cli/dodo-core/pkg/plugin/builder"
 	"github.com/dodo-cli/dodo-core/pkg/plugin/runtime"
-	dockerruntime "github.com/dodo-cli/dodo-docker/pkg/plugin/runtime"
+	dockerruntime "github.com/dodo-cli/dodo-docker/pkg/plugin"
+	"github.com/dodo-cli/dodo-stage-docker-virtualbox/pkg/config"
 	"github.com/dodo-cli/dodo-stage-docker-virtualbox/pkg/virtualbox"
 	api "github.com/dodo-cli/dodo-stage/api/v1alpha1"
 	"github.com/dodo-cli/dodo-stage/pkg/box"
@@ -40,11 +41,6 @@ var _ stage.Stage = &Stage{}
 
 type Stage struct{}
 
-type Options struct {
-	Modify    []string
-	Provision []string
-}
-
 func New() *Stage {
 	return &Stage{}
 }
@@ -60,7 +56,6 @@ func (vbox *Stage) PluginInfo() *coreapi.PluginInfo {
 }
 
 func (vbox *Stage) Init() (plugin.PluginConfig, error) {
-	// TODO: seriously, init this thing
 	return map[string]string{}, nil
 }
 
@@ -89,8 +84,12 @@ func (vbox *Stage) GetStage(name string) (*api.GetStageResponse, error) {
 }
 
 func (vbox *Stage) CreateStage(conf *api.Stage) error {
-	// TODO: read options from config
-	options := &Options{}
+	stages, err := config.GetAllStages(coreconfig.GetConfigFiles()...)
+	if err != nil {
+		return err
+	}
+
+	options := stages[name].Options
 	vm := &virtualbox.VM{Name: conf.Name}
 
 	if err := os.MkdirAll(storagePath(conf.Name), 0700); err != nil {
@@ -219,8 +218,12 @@ func (vbox *Stage) CreateStage(conf *api.Stage) error {
 }
 
 func (vbox *Stage) StartStage(name string) error {
-	// TODO: read options from config
-	options := &Options{}
+	stages, err := config.GetAllStages(coreconfig.GetConfigFiles()...)
+	if err != nil {
+		return err
+	}
+
+	options := stages[name].Options
 	vm := &virtualbox.VM{Name: name}
 
 	running, err := vbox.Available(name)
@@ -505,7 +508,7 @@ func (vbox *Stage) GetContainerRuntime(name string) (runtime.ContainerRuntime, e
 		return nil, err
 	}
 
-	return dockerruntime.NewFromClient(c), nil
+	return dockerruntime.NewContainerRuntimeWithDockerClient(c), nil
 }
 
 func (vbox *Stage) GetImageBuilder(name string) (builder.ImageBuilder, error) {
@@ -527,13 +530,13 @@ func (vbox *Stage) GetImageBuilder(name string) (builder.ImageBuilder, error) {
 		return nil, err
 	}
 
-	return buildkitbuilder.NewFromClient(c), nil
+	return buildkitbuilder.NewImageBuilderWithDockerClient(c), nil
 }
 
 func storagePath(name string) string {
-	return filepath.Join(config.GetAppDir(), "stages", name)
+	return filepath.Join(coreconfig.GetAppDir(), "stages", name)
 }
 
 func persistPath(name string) string {
-	return filepath.Join(config.GetAppDir(), "persist", name)
+	return filepath.Join(coreconfig.GetAppDir(), "persist", name)
 }

@@ -328,6 +328,8 @@ github.com/dodo-cli/dodo-core v0.4.2 h1:NFBq4FNn6gLIV0RGSzRXwN2fyBFK0lJNh6rCi4wS
 github.com/dodo-cli/dodo-core v0.4.2/go.mod h1:Ub7d6SSbMKcFX+w1cDynqStAX4d3/kgOTP9OdBJQEJ0=
 github.com/dodo-cli/dodo-docker v0.3.0 h1:JsCiXVw25YwvmZkP1QaiFsf6m3iOCtF8I8gdTSQARiA=
 github.com/dodo-cli/dodo-docker v0.3.0/go.mod h1:k86d6hH2eKbThPuPIoPzn1Cd6FulzUaDsViGSRftmgY=
+github.com/dodo-cli/dodo-stage v0.1.1-0.20220409162421-7c71c40455ed h1:s6FjRiK1KJssYlTSRLAnSBCx+GV1W1h8C+4dh6CwKVs=
+github.com/dodo-cli/dodo-stage v0.1.1-0.20220409162421-7c71c40455ed/go.mod h1:oJ0dNkYXbM6P5T3cL5Z/mqwrASxSGD9kFduU80sZJrQ=
 github.com/dsnet/compress v0.0.1 h1:PlZu0n3Tuv04TzpfPbrnI0HW/YwodEXDS+oPKahKF0Q=
 github.com/dsnet/compress v0.0.1/go.mod h1:Aw8dCMJ7RioblQeTqt88akK31OvO8Dhf5JflhBbQEHo=
 github.com/dsnet/golib v0.0.0-20171103203638-1ea166775780/go.mod h1:Lj+Z9rebOhdfkVLjJ8T6VcRQv3SXugXy999NBtR9aFY=
