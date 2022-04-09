@@ -20,7 +20,7 @@ import (
 	"github.com/dodo-cli/dodo-core/pkg/plugin/builder"
 	"github.com/dodo-cli/dodo-core/pkg/plugin/runtime"
 	dockerruntime "github.com/dodo-cli/dodo-docker/pkg/plugin"
-	"github.com/dodo-cli/dodo-stage-docker-virtualbox/pkg/config"
+	"github.com/dodo-cli/dodo-stage-docker-virtualbox/internal/config"
 	"github.com/dodo-cli/dodo-stage-docker-virtualbox/pkg/virtualbox"
 	api "github.com/dodo-cli/dodo-stage/api/v1alpha1"
 	"github.com/dodo-cli/dodo-stage/pkg/box"
