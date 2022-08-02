@@ -4,7 +4,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/wabenet/dodo-config/pkg/cuetils"
 	"github.com/wabenet/dodo-config/pkg/includes"
-	"github.com/wabenet/dodo-stage-docker-virtualbox/pkg/spec"
+	"github.com/wabenet/dodo-stage-virtualbox/pkg/spec"
 )
 
 func GetAllStages(filenames ...string) (map[string]*Stage, error) {

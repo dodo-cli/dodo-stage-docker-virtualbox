@@ -1,4 +1,4 @@
-module github.com/wabenet/dodo-stage-docker-virtualbox
+module github.com/wabenet/dodo-stage-virtualbox
 
 go 1.18
 

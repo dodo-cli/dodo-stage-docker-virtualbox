@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/wabenet/dodo-stage-docker-virtualbox/pkg/plugin"
+	"github.com/wabenet/dodo-stage-virtualbox/pkg/plugin"
 )
 
 func main() {

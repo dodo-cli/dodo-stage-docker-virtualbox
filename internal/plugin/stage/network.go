@@ -8,7 +8,7 @@ import (
 
 	log "github.com/hashicorp/go-hclog"
 	"github.com/pkg/errors"
-	"github.com/wabenet/dodo-stage-docker-virtualbox/pkg/virtualbox"
+	"github.com/wabenet/dodo-stage-virtualbox/pkg/virtualbox"
 )
 
 const (
