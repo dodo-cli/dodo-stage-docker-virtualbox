@@ -1,11 +1,5 @@
 package spec
 
-include: [...#Include] | *[]
-
-#Include: {
-  file: string
-}
-
 stages: [string]: #Stage
 
 #Stage: {

@@ -1,10 +1,10 @@
 package config
 
 import (
-	"github.com/dodo-cli/dodo-config/pkg/cuetils"
-	"github.com/dodo-cli/dodo-config/pkg/includes"
-	"github.com/dodo-cli/dodo-stage-docker-virtualbox/pkg/spec"
 	"github.com/hashicorp/go-multierror"
+	"github.com/wabenet/dodo-config/pkg/cuetils"
+	"github.com/wabenet/dodo-config/pkg/includes"
+	"github.com/wabenet/dodo-stage-docker-virtualbox/pkg/spec"
 )
 
 func GetAllStages(filenames ...string) (map[string]*Stage, error) {

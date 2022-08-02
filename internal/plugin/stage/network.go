@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/dodo-cli/dodo-stage-docker-virtualbox/pkg/virtualbox"
 	log "github.com/hashicorp/go-hclog"
 	"github.com/pkg/errors"
+	"github.com/wabenet/dodo-stage-docker-virtualbox/pkg/virtualbox"
 )
 
 const (

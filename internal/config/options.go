@@ -2,8 +2,8 @@ package config
 
 import (
 	"cuelang.org/go/cue"
-	"github.com/dodo-cli/dodo-config/pkg/cuetils"
 	"github.com/hashicorp/go-multierror"
+	"github.com/wabenet/dodo-config/pkg/cuetils"
 )
 
 type Options struct {

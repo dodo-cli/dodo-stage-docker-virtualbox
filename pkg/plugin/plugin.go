@@ -1,8 +1,8 @@
 package plugin
 
 import (
-	"github.com/dodo-cli/dodo-core/pkg/plugin"
-	"github.com/dodo-cli/dodo-stage-docker-virtualbox/internal/plugin/stage"
+	"github.com/wabenet/dodo-core/pkg/plugin"
+	"github.com/wabenet/dodo-stage-docker-virtualbox/internal/plugin/stage"
 )
 
 func RunMe() int {

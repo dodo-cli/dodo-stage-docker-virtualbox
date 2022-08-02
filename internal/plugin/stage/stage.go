@@ -12,34 +12,35 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/docker/docker/client"
-	buildkitbuilder "github.com/dodo-cli/dodo-buildkit/pkg/plugin"
-	coreapi "github.com/dodo-cli/dodo-core/api/v1alpha2"
-	coreconfig "github.com/dodo-cli/dodo-core/pkg/config"
-	"github.com/dodo-cli/dodo-core/pkg/plugin"
-	"github.com/dodo-cli/dodo-core/pkg/plugin/builder"
-	"github.com/dodo-cli/dodo-core/pkg/plugin/runtime"
-	dockerruntime "github.com/dodo-cli/dodo-docker/pkg/plugin"
-	"github.com/dodo-cli/dodo-stage-docker-virtualbox/internal/config"
-	"github.com/dodo-cli/dodo-stage-docker-virtualbox/pkg/virtualbox"
-	api "github.com/dodo-cli/dodo-stage/api/v1alpha1"
-	"github.com/dodo-cli/dodo-stage/pkg/box"
-	"github.com/dodo-cli/dodo-stage/pkg/integrations/ova"
-	"github.com/dodo-cli/dodo-stage/pkg/plugin/stage"
-	"github.com/dodo-cli/dodo-stage/pkg/stagedesigner"
 	log "github.com/hashicorp/go-hclog"
 	"github.com/oclaussen/go-gimme/ssh"
 	"github.com/pkg/errors"
+	coreapi "github.com/wabenet/dodo-core/api/v1alpha4"
+	coreconfig "github.com/wabenet/dodo-core/pkg/config"
+	"github.com/wabenet/dodo-core/pkg/plugin"
+	"github.com/wabenet/dodo-core/pkg/plugin/builder"
+	"github.com/wabenet/dodo-core/pkg/plugin/runtime"
+	"github.com/wabenet/dodo-stage-docker-virtualbox/internal/config"
+	"github.com/wabenet/dodo-stage-docker-virtualbox/pkg/virtualbox"
+	api "github.com/wabenet/dodo-stage/api/v1alpha2"
+	"github.com/wabenet/dodo-stage/pkg/box"
+	"github.com/wabenet/dodo-stage/pkg/integrations/ova"
+	"github.com/wabenet/dodo-stage/pkg/plugin/stage"
+	"github.com/wabenet/dodo-stage/pkg/provision"
+	"github.com/wabenet/dodo-stage/pkg/proxy"
+	"github.com/wabenet/dodo-stage/pkg/stagehand"
 )
 
 const (
 	name        = "virtualbox"
-	defaultPort = 2376
+	defaultPort = 20257 // TODO: this is not the place for this
 )
 
 var _ stage.Stage = &Stage{}
 
-type Stage struct{}
+type Stage struct {
+	proxyClient *proxy.Client
+}
 
 func New() *Stage {
 	return &Stage{}
@@ -57,6 +58,38 @@ func (vbox *Stage) PluginInfo() *coreapi.PluginInfo {
 
 func (vbox *Stage) Init() (plugin.PluginConfig, error) {
 	return map[string]string{}, nil
+}
+
+func (vbox *Stage) Cleanup() {
+	if vbox.proxyClient != nil {
+		vbox.proxyClient.Close()
+		vbox.proxyClient = nil
+	}
+}
+
+func (vbox *Stage) getProxyClient(name string) (*proxy.Client, error) {
+	if vbox.proxyClient != nil {
+		return vbox.proxyClient, nil
+	}
+
+	url, err := vbox.GetURL(name)
+	if err != nil {
+		return nil, err
+	}
+
+	pc, err := proxy.NewClient(&proxy.Config{
+		Address:  url,
+		CAFile:   filepath.Join(storagePath(name), "ca.pem"),
+		CertFile: filepath.Join(storagePath(name), "client.pem"),
+		KeyFile:  filepath.Join(storagePath(name), "client-key.pem"),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	vbox.proxyClient = pc
+
+	return pc, nil
 }
 
 func (vbox *Stage) GetStage(name string) (*api.GetStageResponse, error) {
@@ -214,16 +247,10 @@ func (vbox *Stage) CreateStage(conf *api.Stage) error {
 		}
 	}
 
-	return vbox.StartStage(conf.Name)
+	return nil
 }
 
 func (vbox *Stage) StartStage(name string) error {
-	stages, err := config.GetAllStages(coreconfig.GetConfigFiles()...)
-	if err != nil {
-		return err
-	}
-
-	options := stages[name].Options
 	vm := &virtualbox.VM{Name: name}
 
 	running, err := vbox.Available(name)
@@ -258,6 +285,19 @@ func (vbox *Stage) StartStage(name string) error {
 		return err
 	}
 
+	log.L().Info("VM is running")
+	return nil
+}
+
+func (vbox *Stage) ProvisionStage(name string) error {
+	stages, err := config.GetAllStages(coreconfig.GetConfigFiles()...)
+	if err != nil {
+		return err
+	}
+
+	options := stages[name].Options
+	vm := &virtualbox.VM{Name: name}
+
 	sshOpts, err := vbox.GetSSHOptions(name)
 	if err != nil {
 		return err
@@ -268,14 +308,14 @@ func (vbox *Stage) StartStage(name string) error {
 		return err
 	}
 
-	provisionConfig := &stagedesigner.Config{
+	provisionConfig := &stagehand.Config{
 		Hostname:          vm.Name,
 		DefaultUser:       sshOpts.Username,
 		AuthorizedSSHKeys: []string{string(publicKey)},
 		Script:            options.Provision,
 	}
 
-	result, err := stage.Provision(sshOpts, provisionConfig)
+	result, err := provision.Provision(sshOpts, provisionConfig)
 	if err != nil {
 		return err
 	}
@@ -336,7 +376,7 @@ func (vbox *Stage) StartStage(name string) error {
 		return err
 	}
 
-	log.L().Info("VM is fully provisioned and running")
+	log.L().Info("VM is provisioned")
 	return nil
 }
 
@@ -490,47 +530,21 @@ func (vbox *Stage) GetSSHOptions(name string) (*api.SSHOptions, error) {
 }
 
 func (vbox *Stage) GetContainerRuntime(name string) (runtime.ContainerRuntime, error) {
-	url, err := vbox.GetURL(name)
+	pc, err := vbox.getProxyClient(name)
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := client.NewClientWithOpts(
-		client.WithVersion("1.39"),
-		client.WithHost(url),
-		client.WithTLSClientConfig(
-			filepath.Join(storagePath(name), "ca.pem"),
-			filepath.Join(storagePath(name), "client.pem"),
-			filepath.Join(storagePath(name), "client-key.pem"),
-		),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return dockerruntime.NewContainerRuntimeWithDockerClient(c), nil
+	return pc.ContainerRuntime, nil
 }
 
 func (vbox *Stage) GetImageBuilder(name string) (builder.ImageBuilder, error) {
-	url, err := vbox.GetURL(name)
+	pc, err := vbox.getProxyClient(name)
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := client.NewClientWithOpts(
-		client.WithVersion("1.39"),
-		client.WithHost(url),
-		client.WithTLSClientConfig(
-			filepath.Join(storagePath(name), "ca.pem"),
-			filepath.Join(storagePath(name), "client.pem"),
-			filepath.Join(storagePath(name), "client-key.pem"),
-		),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return buildkitbuilder.NewImageBuilderWithDockerClient(c), nil
+	return pc.ImageBuilder, nil
 }
 
 func storagePath(name string) string {
