@@ -10,6 +10,7 @@ stages: [string]: #Stage
 }
 
 #Options: {
-  modify:    [...string] | *[]
-  provision: [...string] | *[]
+  modify:        [...string] | *[]
+  provision:     [...string] | *[]
+  stagehandUrl?: string
 }

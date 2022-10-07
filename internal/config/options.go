@@ -7,8 +7,9 @@ import (
 )
 
 type Options struct {
-	Modify    []string
-	Provision []string
+	Modify       []string
+	Provision    []string
+	StagehandURL string
 }
 
 func OptionsFromValue(v cue.Value) (*Options, error) {
@@ -39,6 +40,14 @@ func OptionsFromStruct(v cue.Value) (*Options, error) {
 			return nil, err
 		} else {
 			out.Provision = n
+		}
+	}
+
+	if p, ok := cuetils.Get(v, "stagehandUrl"); ok {
+		if n, err := StringFromValue(p); err != nil {
+			return nil, err
+		} else {
+			out.StagehandURL = n
 		}
 	}
 

@@ -26,9 +26,9 @@ import (
 	"github.com/wabenet/dodo-stage/pkg/box"
 	"github.com/wabenet/dodo-stage/pkg/integrations/ova"
 	"github.com/wabenet/dodo-stage/pkg/plugin/stage"
-	"github.com/wabenet/dodo-stage/pkg/provision"
 	"github.com/wabenet/dodo-stage/pkg/proxy"
 	"github.com/wabenet/dodo-stage/pkg/stagehand"
+	"github.com/wabenet/dodo-stage/pkg/stagehand/installer"
 )
 
 const (
@@ -308,6 +308,11 @@ func (vbox *Stage) ProvisionStage(name string) error {
 		return err
 	}
 
+	inst := installer.SSHInstaller{
+		DownloadUrl: options.StagehandURL,
+		SSHOptions:  sshOpts,
+	}
+
 	provisionConfig := &stagehand.Config{
 		Hostname:          vm.Name,
 		DefaultUser:       sshOpts.Username,
@@ -315,7 +320,7 @@ func (vbox *Stage) ProvisionStage(name string) error {
 		Script:            options.Provision,
 	}
 
-	result, err := provision.Provision(sshOpts, provisionConfig)
+	result, err := inst.Install(provisionConfig)
 	if err != nil {
 		return err
 	}
