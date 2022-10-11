@@ -1,0 +1,11 @@
+---
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: dodo-stage-virtualbox
+  description: Adds support for VirtualBox as a dodo stage plugin.
+
+spec:
+  type: library
+  lifecycle: experimental
+  owner: ole.claussen@wabenet.com

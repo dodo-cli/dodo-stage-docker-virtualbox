@@ -2,8 +2,6 @@ module github.com/wabenet/dodo-stage-virtualbox
 
 go 1.18
 
-replace github.com/docker/docker => github.com/docker/docker v20.10.3-0.20220414164044-61404de7df1a+incompatible
-
 require (
 	cuelang.org/go v0.4.3
 	github.com/alecthomas/units v0.0.0-20211218093645-b94a6e3cc137
