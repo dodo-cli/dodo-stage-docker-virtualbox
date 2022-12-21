@@ -57,6 +57,11 @@ func (vm *VM) Info() (map[string]string, error) {
 	scanner := bufio.NewScanner(strings.NewReader(out))
 	for scanner.Scan() {
 		parts := strings.SplitN(scanner.Text(), "=", 2)
+		if len(parts) < 2 {
+			// Ignore anything that is not a key=value line
+			continue
+		}
+
 		key := removeQuotes(parts[0])
 		value := removeQuotes(parts[1])
 		result[key] = value
