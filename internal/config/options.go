@@ -27,7 +27,7 @@ func OptionsFromValue(v cue.Value) (*Options, error) {
 func OptionsFromStruct(v cue.Value) (*Options, error) {
 	out := &Options{}
 
-	if p, ok := cuetils.Get(v, "modidy"); ok {
+	if p, ok := cuetils.Get(v, "modify"); ok {
 		if n, err := StringListFromValue(p); err != nil {
 			return nil, err
 		} else {

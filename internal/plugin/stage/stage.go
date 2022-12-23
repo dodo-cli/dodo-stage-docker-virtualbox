@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/alecthomas/units"
 	log "github.com/hashicorp/go-hclog"
 	"github.com/oclaussen/go-gimme/ssh"
 	"github.com/pkg/errors"
@@ -93,9 +94,16 @@ func (vbox *Stage) getProxyClient(name string) (*proxy.Client, error) {
 }
 
 func (vbox *Stage) GetStage(name string) (*api.GetStageResponse, error) {
+	result := &api.GetStageResponse{Name: name}
+
 	exist, err := vbox.Exist(name)
 	if err != nil {
 		return nil, err
+	}
+
+	result.Exist = exist
+	if !result.Exist {
+		return result, nil
 	}
 
 	available, err := vbox.Available(name)
@@ -103,17 +111,19 @@ func (vbox *Stage) GetStage(name string) (*api.GetStageResponse, error) {
 		return nil, err
 	}
 
+	result.Available = available
+	if !result.Available {
+		return result, nil
+	}
+
 	sshOpts, err := vbox.GetSSHOptions(name)
 	if err != nil {
 		return nil, err
 	}
 
-	return &api.GetStageResponse{
-		Name:       name,
-		Exist:      exist,
-		Available:  available,
-		SshOptions: sshOpts,
-	}, nil
+	result.SshOptions = sshOpts
+
+	return result, nil
 }
 
 func (vbox *Stage) CreateStage(conf *api.Stage) error {
@@ -122,7 +132,7 @@ func (vbox *Stage) CreateStage(conf *api.Stage) error {
 		return err
 	}
 
-	options := stages[name].Options
+	options := stages[conf.Name].Options
 	vm := &virtualbox.VM{Name: conf.Name}
 
 	if err := os.MkdirAll(storagePath(conf.Name), 0700); err != nil {
@@ -169,6 +179,7 @@ func (vbox *Stage) CreateStage(conf *api.Stage) error {
 			}
 		case ova.TypeMemory:
 			if memory := conf.Resources.Memory; memory > 0 {
+				memory = memory / int64(units.Megabyte)
 				importArgs = append(importArgs, "--vsys", "0", "--memory", fmt.Sprintf("%d", memory))
 			}
 		}
