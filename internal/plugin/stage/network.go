@@ -26,7 +26,7 @@ func (vbox *Stage) SetupHostOnlyNetwork(name string, cidr string) error {
 		return err
 	}
 
-	hostOnlyNetwork, err := virtualbox.NewHostOnlyNetwork(cidr)
+	hostOnlyNetwork, err := virtualbox.NewHostOnlyNetwork(name, cidr)
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func CheckNetworkCollisions(target *net.IPNet) error {
 	var dummy interface{}
 	excludedNetworks := map[string]interface{}{}
 	for _, network := range hostonlyifs {
-		ipnet := net.IPNet{IP: network.IPv4.IP, Mask: network.IPv4.Mask}
+		ipnet := net.IPNet{IP: network.LowerIP, Mask: network.NetMask}
 		excludedNetworks[ipnet.String()] = dummy
 	}
 
