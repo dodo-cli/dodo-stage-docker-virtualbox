@@ -16,14 +16,12 @@ import (
 	log "github.com/hashicorp/go-hclog"
 	"github.com/oclaussen/go-gimme/ssh"
 	"github.com/pkg/errors"
-	coreapi "github.com/wabenet/dodo-core/api/v1alpha4"
+	coreapi "github.com/wabenet/dodo-core/api/core/v1alpha5"
 	coreconfig "github.com/wabenet/dodo-core/pkg/config"
 	"github.com/wabenet/dodo-core/pkg/plugin"
-	"github.com/wabenet/dodo-core/pkg/plugin/builder"
-	"github.com/wabenet/dodo-core/pkg/plugin/runtime"
 	"github.com/wabenet/dodo-stage-virtualbox/internal/config"
 	"github.com/wabenet/dodo-stage-virtualbox/pkg/virtualbox"
-	api "github.com/wabenet/dodo-stage/api/v1alpha2"
+	api "github.com/wabenet/dodo-stage/api/stage/v1alpha3"
 	"github.com/wabenet/dodo-stage/pkg/box"
 	"github.com/wabenet/dodo-stage/pkg/integrations/ova"
 	"github.com/wabenet/dodo-stage/pkg/plugin/stage"
@@ -57,7 +55,7 @@ func (vbox *Stage) PluginInfo() *coreapi.PluginInfo {
 	}
 }
 
-func (vbox *Stage) Init() (plugin.PluginConfig, error) {
+func (vbox *Stage) Init() (plugin.Config, error) {
 	return map[string]string{}, nil
 }
 
@@ -68,7 +66,7 @@ func (vbox *Stage) Cleanup() {
 	}
 }
 
-func (vbox *Stage) getProxyClient(name string) (*proxy.Client, error) {
+func (vbox *Stage) GetClient(name string) (*proxy.Client, error) {
 	if vbox.proxyClient != nil {
 		return vbox.proxyClient, nil
 	}
@@ -78,11 +76,11 @@ func (vbox *Stage) getProxyClient(name string) (*proxy.Client, error) {
 		return nil, err
 	}
 
-	pc, err := proxy.NewClient(&proxy.Config{
-		Address:  url,
-		CAFile:   filepath.Join(storagePath(name), "ca.pem"),
-		CertFile: filepath.Join(storagePath(name), "client.pem"),
-		KeyFile:  filepath.Join(storagePath(name), "client-key.pem"),
+	pc, err := proxy.NewClient(&api.ProxyConfig{
+		Url:      url,
+		CaPath:   filepath.Join(storagePath(name), "ca.pem"),
+		CertPath: filepath.Join(storagePath(name), "client.pem"),
+		KeyPath:  filepath.Join(storagePath(name), "client-key.pem"),
 	})
 	if err != nil {
 		return nil, err
@@ -132,7 +130,7 @@ func (vbox *Stage) CreateStage(conf *api.Stage) error {
 		return err
 	}
 
-	options := stages[conf.Name].Options
+	stage := stages[conf.Name]
 	vm := &virtualbox.VM{Name: conf.Name}
 
 	if err := os.MkdirAll(storagePath(conf.Name), 0700); err != nil {
@@ -144,7 +142,7 @@ func (vbox *Stage) CreateStage(conf *api.Stage) error {
 		return errors.Wrap(err, "could not generate SSH key")
 	}
 
-	b, err := box.Load(conf.Box, "virtualbox")
+	b, err := box.Load(stage.Box, "virtualbox")
 	if err != nil {
 		return errors.Wrap(err, "could not load box")
 	}
@@ -174,11 +172,11 @@ func (vbox *Stage) CreateStage(conf *api.Stage) error {
 	for _, item := range ovf.VirtualSystem.VirtualHardware.Items {
 		switch item.ResourceType {
 		case ova.TypeCPU:
-			if cpu := conf.Resources.Cpu; cpu > 0 {
+			if cpu := stage.Resources.Cpu; cpu > 0 {
 				importArgs = append(importArgs, "--vsys", "0", "--cpus", fmt.Sprintf("%d", cpu))
 			}
 		case ova.TypeMemory:
-			if memory := conf.Resources.Memory; memory > 0 {
+			if memory := stage.Resources.Memory; memory > 0 {
 				memory = memory / int64(units.Megabyte)
 				importArgs = append(importArgs, "--vsys", "0", "--memory", fmt.Sprintf("%d", memory))
 			}
@@ -220,8 +218,8 @@ func (vbox *Stage) CreateStage(conf *api.Stage) error {
 		return errors.Wrap(err, "could not create nat controller")
 	}
 
-	if len(options.Modify) > 0 {
-		if err := vm.Modify(options.Modify...); err != nil {
+	if len(stage.Options.Modify) > 0 {
+		if err := vm.Modify(stage.Options.Modify...); err != nil {
 			return err
 		}
 	}
@@ -232,7 +230,7 @@ func (vbox *Stage) CreateStage(conf *api.Stage) error {
 	}
 
 	numDisks := len(sataController.Disks)
-	for index, volume := range conf.Resources.Volumes {
+	for index, volume := range stage.Resources.Volumes {
 		disk := virtualbox.Disk{
 			Path: filepath.Join(persistPath(conf.Name), fmt.Sprintf("disk-%d.vmdk", index)),
 			Size: volume.Size,
@@ -245,13 +243,13 @@ func (vbox *Stage) CreateStage(conf *api.Stage) error {
 		}
 	}
 
-	for index, usb := range conf.Resources.UsbFilters {
+	for index, usb := range stage.Resources.UsbFilters {
 		filter := virtualbox.USBFilter{
 			VMName:    vm.Name,
 			Index:     index,
 			Name:      usb.Name,
-			VendorID:  usb.VendorId,
-			ProductID: usb.ProductId,
+			VendorID:  usb.VendorID,
+			ProductID: usb.ProductID,
 		}
 		if err := filter.Create(); err != nil {
 			return err
@@ -543,24 +541,6 @@ func (vbox *Stage) GetSSHOptions(name string) (*api.SSHOptions, error) {
 		Username:       state.Username,
 		PrivateKeyFile: state.PrivateKeyFile,
 	}, nil
-}
-
-func (vbox *Stage) GetContainerRuntime(name string) (runtime.ContainerRuntime, error) {
-	pc, err := vbox.getProxyClient(name)
-	if err != nil {
-		return nil, err
-	}
-
-	return pc.ContainerRuntime, nil
-}
-
-func (vbox *Stage) GetImageBuilder(name string) (builder.ImageBuilder, error) {
-	pc, err := vbox.getProxyClient(name)
-	if err != nil {
-		return nil, err
-	}
-
-	return pc.ImageBuilder, nil
 }
 
 func storagePath(name string) string {

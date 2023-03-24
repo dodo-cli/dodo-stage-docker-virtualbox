@@ -3,12 +3,15 @@ package config
 import (
 	"cuelang.org/go/cue"
 	"github.com/wabenet/dodo-config/pkg/cuetils"
+	"github.com/wabenet/dodo-stage/pkg/box"
 )
 
 type Stage struct {
-	Name    string
-	Type    string
-	Options *Options
+	Name      string
+	Type      string
+	Box       *box.Config
+	Resources *Resources
+	Options   *Options
 }
 
 func StagesFromValue(v cue.Value) (map[string]*Stage, error) {
@@ -47,6 +50,22 @@ func StageFromStruct(name string, v cue.Value) (*Stage, error) {
 			return nil, err
 		} else {
 			out.Type = n
+		}
+	}
+
+	if p, ok := cuetils.Get(v, "box"); ok {
+		if n, err := BoxFromValue(p); err != nil {
+			return nil, err
+		} else {
+			out.Box = n
+		}
+	}
+
+	if p, ok := cuetils.Get(v, "resources"); ok {
+		if n, err := ResourcesFromValue(p); err != nil {
+			return nil, err
+		} else {
+			out.Resources = n
 		}
 	}
 
