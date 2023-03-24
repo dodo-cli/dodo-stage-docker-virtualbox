@@ -15,7 +15,7 @@ following generate config:
 
 ```yaml
 plugins:
-  - import: github.com/wabenet/dodo-stage-virtualbox/pkg/plugin
+  - import: github.com/wabenet/dodo-stage-virtualbox
 ```
 
 Alternatively, you can install it as a standalone plugin by downloading the
