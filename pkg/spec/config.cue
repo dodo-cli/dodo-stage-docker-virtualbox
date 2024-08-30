@@ -5,42 +5,40 @@ stages: [string]: #Stage
 #Stage: {
   name?:     string
   type:      string
-  box:       #Box
-  resources: #Resources
-  options:   #Options
+
+  if type == "virtualbox" {
+    box:       #VBBox
+    resources: #VBResources
+    options:   [...string] | *[]
+  }
+
   ...
 }
 
-#Box: {
+#VBBox: {
   user:          string
   name:          string
   version:       string
   access_token?: string
 }
 
-#Resources: {
+#VBResources: {
   cpu:     int
   memory:  string
-  volumes: #Volumes | [...#Volume] | *[]
-  usb:     #USBFilters |[...#USBFilter] | *[]
+  volumes: #VBVolumes | [...#VBVolume] | *[]
+  usb:     #VBUSBFilters |[...#VBUSBFilter] | *[]
 }
 
-#Volumes: [string]: #Volume
+#VBVolumes: [string]: #VBVolume
 
-#Volume: {
+#VBVolume: {
   size: string
 }
 
-#USBFilters: [string]: #USBFilter
+#VBUSBFilters: [string]: #VBUSBFilter
 
-#USBFilter: {
+#VBUSBFilter: {
   name:      string
   vendorid:  string
   productid: string
-}
-
-#Options: {
-  modify:        [...string] | *[]
-  provision:     [...string] | *[]
-  stagehandUrl?: string
 }

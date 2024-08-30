@@ -11,7 +11,7 @@ type Stage struct {
 	Type      string
 	Box       *box.Config
 	Resources *Resources
-	Options   *Options
+	Options   []string
 }
 
 func StagesFromValue(v cue.Value) (map[string]*Stage, error) {
@@ -70,7 +70,7 @@ func StageFromStruct(name string, v cue.Value) (*Stage, error) {
 	}
 
 	if p, ok := cuetils.Get(v, "options"); ok {
-		if n, err := OptionsFromValue(p); err != nil {
+		if n, err := StringListFromValue(p); err != nil {
 			return nil, err
 		} else {
 			out.Options = n

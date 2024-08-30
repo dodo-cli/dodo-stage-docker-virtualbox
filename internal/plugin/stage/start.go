@@ -1,19 +1,62 @@
 package stage
 
 import (
+	"errors"
+	"fmt"
 	"math/rand"
 	"net"
 	"strings"
 	"time"
 
 	log "github.com/hashicorp/go-hclog"
-	"github.com/pkg/errors"
 	"github.com/wabenet/dodo-stage-virtualbox/pkg/virtualbox"
+	"github.com/wabenet/dodo-stage/pkg/util/ssh"
 )
 
 const (
 	dhcpPrefix = "HostInterfaceNetworking-"
 )
+
+func (s *Stage) StartStage(name string) error {
+	vm := &virtualbox.VM{Name: name}
+
+	running, err := s.Available(name)
+	if err != nil {
+		return err
+	}
+
+	if running {
+		log.L().Info("VM is already running")
+
+		return nil
+	}
+	log.L().Info("starting VM...")
+
+	log.L().Info("configure network...")
+	if err := s.SetupHostOnlyNetwork(name, "192.168.99.1/24"); err != nil {
+		return fmt.Errorf("could not set up host-only network: %q", err)
+	}
+
+	sshForwarding := vm.NewPortForwarding("ssh")
+	sshForwarding.GuestPort = 22
+	if err := sshForwarding.Create(); err != nil {
+		return fmt.Errorf("could not configure port forwarding: %q", err)
+	}
+
+	if err := vm.Start(); err != nil {
+		return fmt.Errorf("could not start VM: %q", err)
+	}
+
+	log.L().Info("waiting for SSH...")
+	if err = await(func() (bool, error) {
+		return s.isSSHAvailable(name)
+	}); err != nil {
+		return err
+	}
+
+	log.L().Info("VM is running")
+	return nil
+}
 
 func (vbox *Stage) SetupHostOnlyNetwork(name string, cidr string) error {
 	ip, network, err := net.ParseCIDR(cidr)
@@ -190,4 +233,18 @@ func CleanupDHCPServers() error {
 	}
 
 	return nil
+}
+func (vbox *Stage) isSSHAvailable(name string) (bool, error) {
+	sshOpts, err := vbox.GetSSHOptions(name)
+	if err != nil {
+		return false, err
+	}
+	executor, err := ssh.NewExecutor(sshOpts)
+	if err != nil {
+		return false, err
+	}
+	defer executor.Close()
+
+	_, err = executor.Execute("id")
+	return err == nil, nil
 }
